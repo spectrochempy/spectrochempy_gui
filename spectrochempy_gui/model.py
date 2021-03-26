@@ -155,7 +155,18 @@ class Project(QtCore.QObject):
             if not self.dirty:
                 return
         scp.debug_('Saving project')
-        proj = self.project
+        # we need to save only the original data as they will be recalculaded anyway when reloaded
+        proj = self.project.copy()
+        for name in proj.projects_names:
+            for datasetname in proj[name].datasets_names:
+                if 'original' not in datasetname:
+                    del proj[name][datasetname]
+                else:
+                    proj[name][datasetname].processeddata = None
+                    proj[name][datasetname].processedmask = False
+                    if proj[name][datasetname].transposed:
+                        proj[name][datasetname].transpose(inplace=True)
+
         if proj.directory is None:
             proj._directory = self._directory
         if kwargs.get('saveas') or proj.name == 'untitled':

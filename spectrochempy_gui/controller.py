@@ -382,9 +382,8 @@ class Controller(ParameterTree):
             if data in ['before', 'after']: # Move up
                 with params.treeChangeBlocker():
                     self.moveParameters(dataset, params, param, data)
-
-        self.dataset = self.performProcessing(dataset, params)
-
+        dataset = self.performProcessing(dataset, params)
+        self.dataset = dataset
         return
 
     # ..................................................................................................................
@@ -455,11 +454,19 @@ class Controller(ParameterTree):
         dataset.processeddata = None
         dataset.processedmask = False
 
+        transposed = dataset.transposed
+        if transposed:
+            dataset.transpose(inplace=True)
+
         # execute all actions
         if actions:
             self.isProcessing = True
             dataset = self.propagateActions(dataset, actions)
             self.isProcessing = False
+
+        if dataset.transposed != transposed:
+            if hasattr(self.parent, 'plotwidget'):
+                self.parent.plotwidget.sigZoomReset.emit()
 
         params.blockSignals(False)
         return dataset
@@ -529,6 +536,9 @@ class Controller(ParameterTree):
         if nprocess and new is not None:
             dataset.processeddata = new.data
             dataset.processedmask = new.mask
+            if new.transposed:
+                # in this case the original data must also be transposed
+                dataset.transpose(inplace=True)
         else:
             dataset.processeddata = None
             dataset.processedmask = False
