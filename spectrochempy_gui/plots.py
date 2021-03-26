@@ -321,7 +321,6 @@ class PlotWidget(GraphicsLayoutWidget):
         # Prepare the viewbox
         plot = kwargs.get('plotitem', self.p)
         vb = plot.vb
-
         if self.dataset.ndim > 1:
             vb.sigColorMapChanged.connect(self.changeColorMap)
             vb.sigPlotModeChanged.connect(self.changePlotMode)
@@ -338,16 +337,15 @@ class PlotWidget(GraphicsLayoutWidget):
 
         # Get some preferences
         prefs = new.preferences
-
         lw = new.meta.get('linewidth', prefs.lines_linewidth)
 
         # Set axis
         # ========
 
-        # set the abscissa axis
-        # ---------------------
+        # Set the abscissa axis (x)
+        # -------------------------
 
-        # the actual dimension name is the last in the new.dims list
+        # The actual dimension name is the last in the new.dims list
         dimx = new.dims[-1]
 
         # reduce data to the ROI
@@ -371,7 +369,6 @@ class PlotWidget(GraphicsLayoutWidget):
             x = scp.LinearCoord.arange(xsize)
 
         discrete_data = False
-
         if x is not None and (not x.is_empty or x.is_labeled):
             xdata = x.data
             if not np.any(xdata):
@@ -382,22 +379,14 @@ class PlotWidget(GraphicsLayoutWidget):
         else:
             xdata = range(xsize)
 
-        xl = [xdata[0], xdata[-1]]
-        xl.sort()
-
-        xlim = list(kwargs.get('xlim', xl))
+        xlim = [xdata[0], xdata[-1]]
         xlim.sort()
-        xlim[-1] = min(xlim[-1], xl[-1])
-        xlim[0] = max(xlim[0], xl[0])
 
-        if x.reversed:
-            vb.invertX(True)
-        else:
-            vb.invertX(False)
+        vb.invertX(x.reversed)
 
         zoom_reset = kwargs.get('zoom_reset', False)
         if not zoom_reset:
-            if sorted(plot.getAxis('bottom').range) != [0, 1] and  x.title in plot.getAxis('bottom').labelText :
+            if sorted(plot.getAxis('bottom').range) != [0, 1] and x.title in plot.getAxis('bottom').labelText:
                 range = plot.getAxis('bottom').range
                 vb.setXRange(*range, padding=0)
             else:
@@ -406,16 +395,15 @@ class PlotWidget(GraphicsLayoutWidget):
             vb.setXRange(*xlim, padding=0)
 
         ndim = new._squeeze_ndim
-
         if ndim > 1:
 
-            # set the ordinates axis
-            # ----------------------
+            # Set the ordinates axis (y)
+            # --------------------------
 
-            # the actual dimension name is the second in the new.dims list
+            # The actual dimension name is the second in the new.dims list
             dimy = new.dims[-2]
 
-            # reduce to ROI
+            # Reduce to ROI
             y = getattr(new, dimy)
             ly, uy = y.roi
             new = new[ly:uy]
@@ -454,26 +442,25 @@ class PlotWidget(GraphicsLayoutWidget):
                 ylim[-1] = min(ylim[-1], yl[-1])
                 ylim[0] = max(ylim[0], yl[0])
 
+        # Amplitude (z)
+        # -------------
+
         zlim = kwargs.get('zlim', (np.ma.min(zdata), np.ma.max(zdata)))
 
         method = new.meta.get('mode', prefs.method_2D) if ndim > 1 else 'stack'
 
         if method in ['stack']:  # For 2D and 1D plot
 
-            # the z axis info
+            # The z axis info
             # ---------------
-            # zl = (np.min(np.ma.min(ys)), np.max(np.ma.max(ys)))
-            amp = 0  # np.ma.ptp(zdata) / 50.
+            amp = 0
             zl = (np.min(np.ma.min(zdata) - amp), np.max(np.ma.max(zdata)) + amp)
             zlim = list(kwargs.get('zlim', zl))
             zlim.sort()
             z_reverse = kwargs.get('z_reverse', False)
-            if z_reverse:
-                vb.invertY(True)
-            else:
-                vb.invertY(False)
+            vb.invertY(z_reverse)
 
-            # set the limits
+            # Set the limits
             # ---------------
 
             # if yscale == "log" and min(zlim) <= 0:
@@ -540,10 +527,10 @@ class PlotWidget(GraphicsLayoutWidget):
                 mask = zdata.mask
                 zdata[mask] = 0
 
-            # downsampling
+            # Downsampling
             step = 1
-            if ncurves > 500:
-                step = int(ncurves / 500)
+            if ncurves > 250:
+                step = int(ncurves / 250)
 
             for i in np.arange(0, ncurves, step):
                 c = pg.PlotCurveItem(
@@ -555,16 +542,16 @@ class PlotWidget(GraphicsLayoutWidget):
                 plot.addItem(c)
                 c.sigClicked.connect(partial(self._curveSelected, plot))
 
-        # display a title
-        # ----------------
+        # Display a title
         title = kwargs.get('title', None)
         if title:
             plot.setTitle(title)
         elif kwargs.get('plottitle', False):
             plot.setTitle(new.name)
 
-        # labels
-        # ------
+        # Labels
+        # ======
+
         def make_label(ss, label):
             if ss.units is not None and str(ss.units) != 'dimensionless':
                 units = r"{:~P}".format(ss.units)
@@ -573,8 +560,10 @@ class PlotWidget(GraphicsLayoutWidget):
             label = f"{label} / {units}"
             return label
 
+        # --------------------------------------------------------------------------------------------------------------
         # x label
-        # -------
+        # --------------------------------------------------------------------------------------------------------------
+
         xlabel = kwargs.get("xlabel", None)
         if show_x_points:
             xlabel = 'data points'
@@ -608,8 +597,10 @@ class PlotWidget(GraphicsLayoutWidget):
             #             ax.set_yticks(ydata)
             #             ax.set_yticklabels(y.labels)
 
+        # --------------------------------------------------------------------------------------------------------------
         # z label
-        # -------
+        # --------------------------------------------------------------------------------------------------------------
+
         zlabel = kwargs.get("zlabel", None)
         if not zlabel:
             if method in ['stack']:
@@ -630,15 +621,15 @@ class PlotWidget(GraphicsLayoutWidget):
         label = pg.LabelItem(parent=vb, justify='left')
 
         # --------------------------------------------------------------------------------------------------------------
-        # regions
+        # Regions
         # --------------------------------------------------------------------------------------------------------------
 
-        # restore regions
+        # Restore regions
         if plot == self.p:
             self.draw_regions()
 
         # --------------------------------------------------------------------------------------------------------------
-        # vertical line
+        # Vertical line
         # --------------------------------------------------------------------------------------------------------------
 
         vLine = pg.InfiniteLine(angle=90, movable=False)
@@ -697,6 +688,7 @@ class PlotWidget(GraphicsLayoutWidget):
 
         plot.scene().sigMouseMoved.connect(mouseMoved)
 
+    # ..................................................................................................................
     def _findCurveIndex(self, plot, curve):
 
         for index, c in enumerate(plot.curves):
@@ -707,6 +699,7 @@ class PlotWidget(GraphicsLayoutWidget):
 
         return index
 
+    # ..................................................................................................................
     def _curveSelected(self, plot, curve):
         # Action when a curve is selected
 
