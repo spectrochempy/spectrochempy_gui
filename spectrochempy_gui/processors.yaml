@@ -1,0 +1,68 @@
+basis:
+    output:
+      action: processingOutput
+      tip: If checked, the output will be displayed and saved in the project tree.
+      children:
+        - name: name
+          tip: Name of the entry in the project tree.
+          type: str
+          value: untitled
+
+processing:
+
+    plot:
+      action: processingOutput
+      tip: If checked, the output will be displayed and saved in the project tree.
+      children:
+        - name: name
+          tip: Name of the entry in the project tree.
+          type: str
+          value: untitled
+
+    define regions:
+      action: defineRegion
+      tip: Define a masked, a baseline  or an integral region.
+      children:
+        - name: kind
+          title: Kind
+          type: list
+          values: [mask, baseline, integral, undefined]
+          value: undefined
+        - name: regiongroup
+          title: Regions
+          tip: Modify the region on the graph using its anchors.
+          type: regiongroup
+          value: undefined
+          readonly: True
+
+    transpose:
+      action: spectrochempy.transpose
+      tip: Transpose the current dataset - usefull as most processing method only work on the x dimension.
+
+    abc:
+      action: spectrochempy.abc
+      tip: Perform an automatic baseline correction.
+
+    basc:
+      action: spectrochempy.basc
+      tip: Perform a manual baseline correction.
+      children:
+        - name: method
+          title: Method
+          type: list
+          values: [sequential, multivariate]
+          value: sequential
+        - name: interpolation
+          title: Interpolation method
+          type: list
+          values: [polynomial, pchip]
+          value: polynomial
+        - name: order
+          title: Polynomial order
+          type: int
+          value: 5
+          limits: [1, 8]
+        - name: Number of PC
+          type: int
+          value: 3
+          limits: [1, 8]
