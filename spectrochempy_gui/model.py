@@ -160,7 +160,7 @@ class Project(QtCore.QObject):
         for name in proj.projects_names:
             for datasetname in proj[name].datasets_names:
                 if 'original' not in datasetname:
-                    del proj[name][datasetname]
+                    proj[name].remove_dataset(datasetname)
                 else:
                     proj[name][datasetname].processeddata = None
                     proj[name][datasetname].processedmask = False
