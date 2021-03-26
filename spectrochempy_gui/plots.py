@@ -26,9 +26,6 @@ class CustomViewBox(ViewBox):
     sigColorMapChanged = QtCore.Signal(object)
     sigLineWidthChanged = QtCore.Signal(object)
 
-    signalShowT0 = QtCore.Signal()
-    signalShowS0 = QtCore.Signal()
-
     def __init__(self, parent=None, ndim=1, prefs=None):
         """
         Constructor of the CustomViewBox
@@ -110,17 +107,6 @@ class CustomViewBox(ViewBox):
 
         self.menu.addSeparator()
 
-        self.showT0 = QtGui.QAction(u'Afficher les marqueurs d\'amplitude', self.menu)
-        self.showT0.triggered.connect(self.emitShowT0)
-        self.showT0.setCheckable(True)
-        self.showT0.setEnabled(False)
-        self.menu.addAction(self.showT0)
-        self.showS0 = QtGui.QAction(u'Afficher les marqueurs de Zone d\'intÃ©gration', self.menu)
-        self.showS0.setCheckable(True)
-        self.showS0.triggered.connect(self.emitShowS0)
-        self.showS0.setEnabled(False)
-        self.menu.addAction(self.showS0)
-
         return self.menu
 
     def emitLineWidthChanged(self, val):
@@ -133,18 +119,6 @@ class CustomViewBox(ViewBox):
     def emitColorMapChanged(self, index):
         color = self.colorMapItems[index]
         self.sigColorMapChanged.emit(color)
-
-    def emitShowT0(self):
-        """
-        Emit signalShowT0
-        """
-        self.signalShowT0.emit()
-
-    def emitShowS0(self):
-        """
-        Emit signalShowS0
-        """
-        self.signalShowS0.emit()
 
     def setRectMode(self):
         """
@@ -164,7 +138,10 @@ class CustomViewBox(ViewBox):
 
 class PlotWidget(GraphicsLayoutWidget):
 
+    sigZoomReset = QtCore.Signal()
+
     _dataset = None  # current dataset associated to the plotwidget
+    _autorange = True
 
     # ..................................................................................................................
     def __init__(self, parent):
@@ -177,6 +154,7 @@ class PlotWidget(GraphicsLayoutWidget):
         # Prepare additionnal traces
         self.selected = None  # traces selected in 2D spectra
         self.selected_pen = None # original pen of a selected curve
+        self.sigZoomReset.connect(self.zoomReset)
 
     # ..................................................................................................................
     def _masked(self, data, mask):
@@ -276,6 +254,14 @@ class PlotWidget(GraphicsLayoutWidget):
         self.dataset.meta['linewidth'] = lw
         self.draw(self.dataset)
 
+    def zoomReset(self):
+        self._autorange=True
+
+    def inverted(self, lim):
+        if lim[0] > lim[1]:
+            return True
+        return False
+
     # ..................................................................................................................
     def draw(self, dataset, zoom_reset=False):
         """
@@ -288,6 +274,8 @@ class PlotWidget(GraphicsLayoutWidget):
         """
 
         self.dataset = dataset
+        if self._autorange:
+            zoom_reset = True
 
         # Create the main plotItem
         if not hasattr(self, 'p'):
@@ -299,7 +287,9 @@ class PlotWidget(GraphicsLayoutWidget):
         self._draw(zoom_reset=zoom_reset)
 
         # Draw processed
-        self._draw_processed(zoom_reset=zoom_reset, only_x=True)  # zoom reset only along x but autoscale on y
+        self._draw_processed(zoom_reset=zoom_reset)
+
+        self._autorange = False
 
     # ..................................................................................................................
     def _draw_processed(self, **kwargs):
@@ -336,15 +326,6 @@ class PlotWidget(GraphicsLayoutWidget):
             vb.sigColorMapChanged.connect(self.changeColorMap)
             vb.sigPlotModeChanged.connect(self.changePlotMode)
             vb.sigLineWidthChanged.connect(self.changeLineWidth)
-        # Zoom
-        zoom_reset = kwargs.get('zoom_reset', False)
-        only_x = kwargs.get('only_x', False)
-        zoomx = False
-        if plot.getAxis('bottom').range != [0,1] and not zoom_reset:
-            zoomx = plot.getAxis('bottom').range
-        zoomy = False
-        if plot.getAxis('left').range != [0,1] and not zoom_reset and not only_x:
-            zoomy = plot.getAxis('left').range
         plot.clear()
 
         # Copy the dataset
@@ -409,12 +390,18 @@ class PlotWidget(GraphicsLayoutWidget):
         xlim[-1] = min(xlim[-1], xl[-1])
         xlim[0] = max(xlim[0], xl[0])
 
-        if kwargs.get('x_reverse', kwargs.get('reverse', x.reversed if x else False)):
-            # xlim.reverse()
-            vb.invertX()
+        if x.reversed:
+            vb.invertX(True)
+        else:
+            vb.invertX(False)
 
-        if zoomx:
-            vb.setXRange(*zoomx, padding=0)
+        zoom_reset = kwargs.get('zoom_reset', False)
+        if not zoom_reset:
+            if sorted(plot.getAxis('bottom').range) != [0, 1] and  x.title in plot.getAxis('bottom').labelText :
+                range = plot.getAxis('bottom').range
+                vb.setXRange(*range, padding=0)
+            else:
+                vb.setXRange(*xlim, padding=0)
         else:
             vb.setXRange(*xlim, padding=0)
 
@@ -482,7 +469,9 @@ class PlotWidget(GraphicsLayoutWidget):
             zlim.sort()
             z_reverse = kwargs.get('z_reverse', False)
             if z_reverse:
-                vb.invertY()
+                vb.invertY(True)
+            else:
+                vb.invertY(False)
 
             # set the limits
             # ---------------
@@ -491,11 +480,8 @@ class PlotWidget(GraphicsLayoutWidget):
             #    # set the limits wrt smallest and largest strictly positive values
             #    ax.set_ylim(10 ** (int(np.log10(np.amin(np.abs(zdata)))) - 1),
             #                10 ** (int(np.log10(np.amax(np.abs(zdata)))) + 1))
-            #else:
-            if zoomy:
-                vb.setYRange(*zoomy, padding=0)
-            else:
-                vb.setYRange(*zlim, padding=0)
+
+            vb.setYRange(*zlim, padding=0)
 
         else:
 

@@ -20,7 +20,7 @@ def start():
     from spectrochempy_gui.gui import MainWindow
 
     gui = QtGui.QApplication(sys.argv)
-    MainWindow(show=True)
+    mw = MainWindow(show=True)
     gui.exec_()
 
     # Quit
