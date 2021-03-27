@@ -249,6 +249,7 @@ class Controller(ParameterTree):
             self.parent.close_action.setDisabled(True)
             self.parent.add_dataset_action.setDisabled(True)
             self.parent.projectwidget.setProject(None)
+            self.onDatasetChanged(None)
 
     # ..................................................................................................................
     def onDatasetChanged(self, dataset, change=None):
