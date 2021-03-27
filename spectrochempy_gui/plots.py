@@ -503,10 +503,8 @@ class PlotWidget(GraphicsLayoutWidget):
 
         #  ax.grid(prefs.axes_grid)  # TODO
 
-        if ndim > 1:
-            normalize = kwargs.get('normalize', None)
-            cmap = new.meta.get('colormap', prefs.colormap)
-            self.cmap = pg.colormap.get(cmap, source='matplotlib', skipCache=True)
+        cmap = new.meta.get('colormap', prefs.colormap)
+        self.cmap = pg.colormap.get(cmap, source='matplotlib', skipCache=True)
 
         if method in ['stack']:
 
@@ -514,12 +512,12 @@ class PlotWidget(GraphicsLayoutWidget):
             #    data = data.at_least2d()
 
             ncurves = zdata.shape[0]
+            colors = self.cmap.color
             if ncurves > 1:
-                colors = self.cmap.color
                 icolor = np.linspace(0, (colors.shape[0]-1), ncurves).astype(int)
                 colors = colors[icolor]
             else:
-                colors = [prefs('color')]
+                colors = [colors[0]] # [prefs('color')]
             self.colors = colors
 
             # self.curves = []
