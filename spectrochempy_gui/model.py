@@ -187,7 +187,7 @@ class Project(QtCore.QObject):
         # Read the  dataset
         try:
             if not dataset:
-                dataset = scp.read(Qt_parent=self.parent, protocol='omnic')
+                dataset = scp.read(Qt_parent=self.parent, default_filter='omnic')
             if dataset is None:  # still not determined.
                 return
         except Exception as e:
