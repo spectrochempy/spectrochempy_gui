@@ -17,7 +17,7 @@ def start():
 
     # Main thread
     from spectrochempy_gui.pyqtgraph.Qt import QtGui
-    from spectrochempy_gui.gui import MainWindow
+    from spectrochempy_gui.mainwindow import MainWindow
 
     gui = QtGui.QApplication(sys.argv)
     mw = MainWindow(show=True)
