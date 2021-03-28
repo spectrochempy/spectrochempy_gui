@@ -22,6 +22,7 @@ from spectrochempy_gui.pyqtgraph.parametertree import (Parameter, ParameterTree,
 from spectrochempy_gui.utils import info_msg
 from spectrochempy_gui.model import Regions
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 def getProcessors(key='processing'):
     """
@@ -91,21 +92,20 @@ class RegionGroup(parameterTypes.GroupParameter):
     def addNew(self, span=None):
 
         kind = self.parent().param('kind').value()
-        if self.parent().param('kind').value() == 'undefined':
-            info_msg(self.parent().parent().parent().parent(),
-                     'Warning','Warning: kind is undefined.\n\nSelecting a kind is required before trying to add a '
-                               'region!')
+        if kind == 'undefined':
+            info_msg(self.parent().parent().parent().parent(), 'Warning',
+                     'Warning: kind is undefined.\n\nSelecting a kind is required before trying to add a region!')
             return
 
         name = f"{self.parent().name().split('#')[1]}.{self.current_index}"
         title = 'Range'
         range = self.addChild(dict(name=name,
-                           title=f"{title}",
-                           type='str',
-                           value='undefined' if span is None else span,
-                           readonly=True,
-                           removable=True,
-                           ))
+                               title=f"{title}",
+                               type='str',
+                               value='undefined' if span is None else span,
+                               readonly=True,
+                               removable=True,
+                               ))
 
         self.current_index += 1
 
@@ -254,13 +254,14 @@ class Controller(ParameterTree):
     # ..................................................................................................................
     def onDatasetChanged(self, dataset, change=None):
 
-        if dataset is None:
+        if dataset is None or change == 'select':
             if hasattr(self.parent, 'plotwidget'):
                 self.parent.plotwidget.close()
                 del self.parent.plotwidget
                 self.parent.dplot.hideTitleBar()
             self.clear()
-            return
+            if change != 'select':
+                return
 
         scp.debug_(f'Update controller: {dataset.name}')
 
