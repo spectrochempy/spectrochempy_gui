@@ -76,16 +76,19 @@ class RegionGroup(parameterTypes.GroupParameter):
         kind = self.parent().param('kind').value()
 
         if child.value() == 'undefined':
+            # dimension
+            dim = self.parent().parent().parent().parent().dataset.dims[-1]
             # default span
             rangex = np.array(self.parent().parent().parent().parent().parent.plotwidget.p.getAxis('bottom').range)
             x = rangex.mean()
             w = rangex.ptp() / 50
             span = (x - w, x + w)
         else:
-            span = eval(child.value())
+            dim, span = child.value().split('> ')
+            span = eval(span)
 
         # add it
-        self.parent().regions.addRegion(child, kind=kind, span=span)
+        self.parent().regions.addRegion(child, kind=kind, span=span, dim=dim)
         scp.debug_(f'> new {kind} region added to the regions (index: {self.current_index})')
 
     # ..................................................................................................................
@@ -316,9 +319,11 @@ class Controller(ParameterTree):
                 kind = item.param.parent().parent().param('kind').value()
                 name = item.param.name()
                 # deselect all
-                for regionItem in item.param.parent().parent().regions.getLinearRegions(kind).values():
+                p = item.param.parent().parent()
+                dim = self.dataset.dims[-1]
+                for regionItem in p.regions.getLinearRegions(kind, dim).values():
                     regionItem[0].setMouseHover(False)
-                regionItem = item.param.parent().parent().regions.findLinearRegion(name, kind)
+                regionItem = p.regions.findLinearRegion(name, kind, dim)
                 regionItem[0].setMouseHover(True)
 
 # ..................................................................................................................
@@ -553,7 +558,8 @@ class Controller(ParameterTree):
                         parameters[children.name()] = children.value()
             else:
                 parameters['kind'] = item.param('kind').value()
-                parameters['range'] = [list(eval(span.value())) for span in item.param('regiongroup').children()]
+                parameters['range'] = [list(eval(val.value().split('> ')[1]))
+                                       for val in item.param('regiongroup').children()]
 
             actions[-1].append(parameters)
 

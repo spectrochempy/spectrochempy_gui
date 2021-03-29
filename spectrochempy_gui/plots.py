@@ -226,7 +226,7 @@ class PlotWidget(GraphicsLayoutWidget):
         return self._masked(np.real(self._dataset.referencedata), self._dataset.mask)
 
 #..................................................................................................................
-    def draw_regions(self):
+    def draw_regions(self, reg=None):
 
         procs = self.parent.controller.params.param('processing').children()
         for proc in procs:
@@ -234,8 +234,11 @@ class PlotWidget(GraphicsLayoutWidget):
                 kind = proc.param('kind').value()
                 if kind == 'undefined' or not hasattr(proc, 'regions'):
                     return
+                dim = self.dataset.dims[-1]
+                if not proc.param('regiongroup').childs[0].value().startswith(dim):
+                    continue
                 for el, par in proc.regions.regionItems.values():
-                    if el._name.startswith(kind):
+                    if el._name.startswith(f"{dim}_{kind}_"):
                         if not proc.opts['expanded']:
                             self.p.removeItem(el)
                         else:
@@ -341,7 +344,6 @@ class PlotWidget(GraphicsLayoutWidget):
 
         # Set axis
         # ========
-
         # Set the abscissa axis (x)
         # -------------------------
 
@@ -356,6 +358,7 @@ class PlotWidget(GraphicsLayoutWidget):
         else:
             new = new[lx:ux]
 
+        # read again the x coordinate in case of ROI change
         x = getattr(new, dimx)
         if x is not None and x.implements('CoordSet'):
             # if several coords, take the default ones:
@@ -523,8 +526,8 @@ class PlotWidget(GraphicsLayoutWidget):
 
             # self.curves = []
             if hasattr(zdata, 'mask'):
-                mask = zdata.mask
-                zdata[mask] = 0
+                zdata.fill_value = 0.0
+                # zdata[mask] = 0
 
             # Downsampling
             step = 1
@@ -532,14 +535,16 @@ class PlotWidget(GraphicsLayoutWidget):
                 step = int(ncurves / 250)
 
             for i in np.arange(0, ncurves, step):
+                zdat = zdata[i:i + step].max(axis=0) if step > 1 else zdata[i]
+                mask = zdat.mask
                 c = pg.PlotCurveItem(
-                          x=xdata,
-                          y=zdata[i:i+step].max(axis=0) if step > 1 else zdata[i],
+                          x=xdata[~mask] if np.any(mask) else xdata,
+                          y=zdat[~mask] if np.any(mask) else zdat,
                           pen=mkPen(mkColor(colors[i]), width=lw),
-                          clickable=True
-                          )
+                          clickable=True)
                 plot.addItem(c)
                 c.sigClicked.connect(partial(self._curveSelected, plot))
+
 
         # Display a title
         title = kwargs.get('title', None)
@@ -617,7 +622,8 @@ class PlotWidget(GraphicsLayoutWidget):
             else:
                 plot.hideAxis('left')
 
-        label = pg.LabelItem(parent=vb, justify='left')
+        if not hasattr(self, 'label'):
+            self.label = pg.LabelItem(parent=self.p, justify='left')
 
         # --------------------------------------------------------------------------------------------------------------
         # Regions
@@ -669,8 +675,7 @@ class PlotWidget(GraphicsLayoutWidget):
 
                     coord = coord * x.units
                     coordstr = f'{coord:~0.2fP}'
-
-                    label.setText(
+                    self.label.setText(
                             f"<span style='background-color:#FFF; font-size: 12pt'>"
                             f"<span style='color: blue'>{x.title} = {coordstr}</span>"
                             f"<br/>"
@@ -679,7 +684,7 @@ class PlotWidget(GraphicsLayoutWidget):
                     vLine.setPos(mouse_point.x())
                     # hLine.setPos(mouse_point.y())
                 else:
-                    label.setText('')
+                    self.label.setText('')
                     vLine.setPos(0)
                     vLine.setVisible(False)
                     # hLine.setPos(0)

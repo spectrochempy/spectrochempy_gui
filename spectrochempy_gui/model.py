@@ -310,7 +310,7 @@ class Regions(QtCore.QObject):
         self.brushcolor = self.BRUSH.get(kind.lower(), (254, 0, 0, 60))
 
     # ..................................................................................................................
-    def addRegion(self, param, kind='undefined', span=None):
+    def addRegion(self, param, kind='undefined', span=None, dim='x'):
 
         # If kind is undfined do nothing
         if kind == 'undefined':
@@ -321,12 +321,13 @@ class Regions(QtCore.QObject):
 
         # Update param info with provided span or default values
         if span is None and param.value() != 'undefined':
+            span, dim = param.value().split('> ')
             span = eval(param.value())
-        param.setValue(f'{span[0]:.1f}, {span[1]:.1f}')
+        param.setValue(f'{dim}> {span[0]:.1f}, {span[1]:.1f}')
 
         # Define
         region = pg.LinearRegionItem(values=span, brush=self.brushcolor)
-        region._name = f'{self.kind}_{param.name()}'
+        region._name = f'{dim}_{self.kind}_{param.name()}'
         region.setRegion(span)
 
         self.regionItems[region._name] = (region, param)
@@ -340,27 +341,31 @@ class Regions(QtCore.QObject):
         self.sigRegionAdded.emit(self, region)
 
     # ..................................................................................................................
-    def getLinearRegions(self, kind):
+    def getLinearRegions(self, kind, dim):
 
         regions={}
         for k, el in self.regionItems.items():
-            if k.startswith(kind):
+            if f"{dim}_{kind}_" in k:
                 regions[k] = el
         return regions
 
     # ..................................................................................................................
-    def findLinearRegion(self, name, kind):
+    def findLinearRegion(self, name, kind, dim):
 
-        name = f'{kind}_{name}'
-        return self.getLinearRegions(kind)[name]
+        name = f'{dim}_{kind}_{name}'
+        try:
+            return self.getLinearRegions(kind, dim)[name]
+        except KeyError:
+            return {}
 
     # ..................................................................................................................
-    def regionChanged(self, param, region):
+    def regionChanged(self, param, reg):
 
-        low, high = region.getRegion()
-        param.setValue(f'{low:.1f}, {high:.1f}')
+        low, high = reg.getRegion()
+        dim, _, _ = reg._name.split('_')
+        param.setValue(f'{dim}> {low:.1f}, {high:.1f}')
 
-        self.sigRegionChanged.emit(self, region)
+        self.sigRegionChanged.emit(self, reg)
 
     # ..................................................................................................................
     def regionRemoved(self, region):
