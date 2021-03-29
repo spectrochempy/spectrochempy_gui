@@ -198,6 +198,21 @@ class MainWindow(QtGui.QMainWindow):
 
         self.menuBar().addMenu(project_menu)
 
+        # Processing menu
+        # ---------------
+        proc_menu = QtGui.QMenu('Script', parent=self)
+        self.menuBar().addMenu(proc_menu)
+
+        # export script
+        export_script_action = QtGui.QAction('Export script', self)
+        export_script_action.triggered.connect(self.controller.exportScript)
+        proc_menu.addAction(export_script_action)
+
+        # import script
+        import_script_action = QtGui.QAction('Import script', self)
+        import_script_action.triggered.connect(self.controller.importScript)
+        proc_menu.addAction(import_script_action)
+
         # Help menu
         # --------------------------------------------------------------------------------------------------------------
 

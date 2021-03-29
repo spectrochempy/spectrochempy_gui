@@ -388,6 +388,7 @@ class PlotWidget(GraphicsLayoutWidget):
         if not zoom_reset:
             if sorted(plot.getAxis('bottom').range) != [0, 1] and x.title in plot.getAxis('bottom').labelText:
                 range = plot.getAxis('bottom').range
+                range.sort()
                 vb.setXRange(*range, padding=0)
             else:
                 vb.setXRange(*xlim, padding=0)
