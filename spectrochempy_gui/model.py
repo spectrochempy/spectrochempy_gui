@@ -164,7 +164,9 @@ class Project(QtCore.QObject):
                 else:
                     proj[name][datasetname].processeddata = None
                     proj[name][datasetname].processedmask = False
-                    if proj[name][datasetname].transposed:
+                    transposed = self.project[name][datasetname].transposed # we take the flag on the self.project
+                    # has it is not copied
+                    if transposed:
                         proj[name][datasetname].transpose(inplace=True)
 
         if proj.directory is None:

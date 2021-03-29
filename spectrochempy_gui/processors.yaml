@@ -62,7 +62,8 @@ processing:
           type: int
           value: 5
           limits: [1, 8]
-        - name: Number of PC
+        - name: npc
+          title: Number of PC
           type: int
           value: 3
           limits: [1, 8]

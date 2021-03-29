@@ -335,7 +335,7 @@ class Controller(ParameterTree):
             dataset.state = state
             self.parent.project.dirty = True
             # variable
-        else:
+        elif changes[0][1] != 'contextMenu':
             return
 
         for param, change, data in changes:
@@ -352,6 +352,8 @@ class Controller(ParameterTree):
             # parents?
             top_group = param
             top_parent = param.parent()
+            if top_parent is None:
+                return
             while top_parent.name() != 'params':
                 top_group = top_parent
                 top_parent = top_parent.parent()
@@ -382,11 +384,66 @@ class Controller(ParameterTree):
         # processing item context menu
         if change == 'contextMenu':
             if data in ['before', 'after']: # Move up
-                with params.treeChangeBlocker():
-                    self.moveParameters(dataset, params, param, data)
+                params.blockSignals(True)# with treeChangeBlocker():
+                self.moveParameters(dataset, params, param, data)
+                params.blockSignals(False)
+
         dataset = self.performProcessing(dataset, params)
         self.dataset = dataset
         return
+
+    # ..................................................................................................................
+    def exportScript(self):
+
+        params = self.params
+        actions = self.getProcessingActions(params)
+
+        script = ""
+
+        for action in actions:
+            if action is None:
+                continue
+
+            cmdtxt = action[0].split('.')
+            kwargs = action[1]
+
+            if len(cmdtxt) > 1:
+                # call from a library or a script to import
+                lib = import_module(cmdtxt[0])
+                func = cmdtxt[1]
+
+            else:
+                lib = self
+                func = cmdtxt[0]
+
+            if func == 'defineRegion':
+                script += f"{kwargs['kind']}_ranges = {kwargs['range']}\n"
+                continue # next actions
+
+            args = ''
+            if func == 'basc':
+                args = '*baseline_ranges, '
+
+            kw = ""
+            for k,v in kwargs.items():
+                if isinstance(v, str):
+                    v = f"'{v}'"
+                kw += f"{k}={v}, "
+            if kw.endswith(", "):
+                kw = kw[:-2]
+            script += f"dataset.{func}({args}{kw})\n"
+
+        if not script:
+            return
+
+
+    def importScript(self):
+        """
+
+        Returns
+        -------
+
+        """
 
     # ..................................................................................................................
     def roiChanged(self, dataset, param, change, data):
