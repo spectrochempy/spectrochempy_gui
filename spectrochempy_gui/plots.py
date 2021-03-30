@@ -387,17 +387,21 @@ class PlotWidget(GraphicsLayoutWidget):
         xlim.sort()
 
         vb.invertX(x.reversed)
+        print(plot, x.reversed, xlim, x.limits, plot.getAxis('bottom').range)
 
         zoom_reset = kwargs.get('zoom_reset', False)
         if not zoom_reset:
             if sorted(plot.getAxis('bottom').range) != [0, 1] and x.title in plot.getAxis('bottom').labelText:
                 range = plot.getAxis('bottom').range
-                range.sort()
+                range= sorted(range, reverse=True)
                 vb.setXRange(*range, padding=0)
+                print('1 - setXrange (range)', range)
             else:
                 vb.setXRange(*xlim, padding=0)
+                print('2 - setXrange (xlim)', xlim)
         else:
             vb.setXRange(*xlim, padding=0)
+            print('3 - setXrange (xlim)', xlim)
 
         ndim = new._squeeze_ndim
         if ndim > 1:
