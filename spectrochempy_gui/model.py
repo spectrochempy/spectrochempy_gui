@@ -326,11 +326,11 @@ class Regions(QtCore.QObject):
         param.setValue(f'{dim}> {span[0]:.1f}, {span[1]:.1f}')
 
         # Define
+        name = f'{dim}_{self.kind}_{param.name()}'
         region = pg.LinearRegionItem(values=span, brush=self.brushcolor)
-        region._name = f'{dim}_{self.kind}_{param.name()}'
+        region._name = name
         region.setRegion(span)
-
-        self.regionItems[region._name] = (region, param)
+        self.regionItems[name] = (region, param)
 
         # events
         region.sigRegionChangeFinished.connect(partial(self.regionChanged, param))
@@ -362,7 +362,8 @@ class Regions(QtCore.QObject):
     def regionChanged(self, param, reg):
 
         low, high = reg.getRegion()
-        dim, _, _ = reg._name.split('_')
+        s = reg._name.split('_')
+        dim = s[0]
         param.setValue(f'{dim}> {low:.1f}, {high:.1f}')
 
         self.sigRegionChanged.emit(self, reg)
@@ -370,7 +371,7 @@ class Regions(QtCore.QObject):
     # ..................................................................................................................
     def regionRemoved(self, region):
 
-        el, par = self.findLinearRegion(name=region.name(), kind=self.kind)
+        el, par = self.findLinearRegion(name=region.name(), kind=self.kind, dim='x')
         del self.regionItems[el._name]
         del el
 

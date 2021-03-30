@@ -237,6 +237,7 @@ class PlotWidget(GraphicsLayoutWidget):
                 dim = self.dataset.dims[-1]
                 if not proc.param('regiongroup').childs[0].value().startswith(dim):
                     continue
+
                 for el, par in proc.regions.regionItems.values():
                     if el._name.startswith(f"{dim}_{kind}_"):
                         if not proc.opts['expanded']:
@@ -526,8 +527,8 @@ class PlotWidget(GraphicsLayoutWidget):
 
             # self.curves = []
             if hasattr(zdata, 'mask'):
-                zdata.fill_value = 0.0
-                # zdata[mask] = 0
+                mask = zdata.mask
+                zdata[mask] = np.nan
 
             # Downsampling
             step = 1
@@ -536,12 +537,14 @@ class PlotWidget(GraphicsLayoutWidget):
 
             for i in np.arange(0, ncurves, step):
                 zdat = zdata[i:i + step].max(axis=0) if step > 1 else zdata[i]
-                mask = zdat.mask
+                if np.alltrue(mask):
+                    continue
                 c = pg.PlotCurveItem(
-                          x=xdata[~mask] if np.any(mask) else xdata,
-                          y=zdat[~mask] if np.any(mask) else zdat,
+                          x=xdata,
+                          y=zdat,
                           pen=mkPen(mkColor(colors[i]), width=lw),
-                          clickable=True)
+                          clickable=True,
+                          connect='finite')
                 plot.addItem(c)
                 c.sigClicked.connect(partial(self._curveSelected, plot))
 
@@ -630,8 +633,7 @@ class PlotWidget(GraphicsLayoutWidget):
         # --------------------------------------------------------------------------------------------------------------
 
         # Restore regions
-        if plot == self.p:
-            self.draw_regions()
+        self.draw_regions()
 
         # --------------------------------------------------------------------------------------------------------------
         # Vertical line
